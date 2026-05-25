@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Nhắc Thuốc" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Nhắc Thuốc An Lành</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <i data-lucide="pill"></i>
+        </div>
+        <div>
+          <h1>Nhắc Thuốc</h1>
+          <p id="dateLine">Đang tải ngày...</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="tool-button" id="notificationBtn" type="button">
+          <i data-lucide="bell"></i>
+          <span>Bật thông báo</span>
+        </button>
+        <button class="tool-button" id="testAlarmBtn" type="button">
+          <i data-lucide="volume-2"></i>
+          <span>Thử chuông</span>
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Màn hình chính">
+      <button class="tab-button active" type="button" data-view="home">
+        <i data-lucide="calendar-clock"></i>
+        <span>Sắp tới</span>
+      </button>
+      <button class="tab-button" type="button" data-view="manage">
+        <i data-lucide="plus-circle"></i>
+        <span>Thêm lịch</span>
+      </button>
+    </nav>
+
+    <main class="app-shell">
+      <section class="view active" id="homeView" aria-labelledby="homeTitle">
+        <section class="hero-panel">
+          <div>
+            <p class="eyebrow">Bây giờ</p>
+            <div class="clock" id="clockText">--:--</div>
+            <p id="shortDateText">--</p>
+          </div>
+          <div class="next-summary">
+            <p class="eyebrow">Lịch gần nhất</p>
+            <h2 id="homeTitle">Chưa có lịch sắp tới</h2>
+            <p id="nextDoseMeta">Thêm lịch nhắc để bắt đầu.</p>
+          </div>
+        </section>
+
+        <section class="upcoming-panel" aria-labelledby="upcomingTitle">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Trang chính</p>
+              <h2 id="upcomingTitle">Những lần uống sắp tới</h2>
+            </div>
+            <button class="icon-button" id="exportBtn" type="button" title="Xuất dữ liệu">
+              <i data-lucide="download"></i>
+            </button>
+          </div>
+          <div class="upcoming-list" id="upcomingList"></div>
+        </section>
+      </section>
+
+      <section class="view" id="manageView" aria-labelledby="manageTitle">
+        <section class="editor-panel">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Tùy chỉnh</p>
+              <h2 id="manageTitle">Thêm lịch nhắc</h2>
+            </div>
+            <button class="icon-button" id="resetFormBtn" type="button" title="Tạo lịch mới">
+              <i data-lucide="plus"></i>
+            </button>
+          </div>
+
+          <form id="medicineForm" class="medicine-form">
+            <input type="hidden" id="medicineId" />
+            <input type="hidden" id="medicinePhotoData" />
+
+            <label>
+              Tên thuốc
+              <input id="medicineName" type="text" placeholder="Ví dụ: Thuốc huyết áp" required />
+            </label>
+
+            <label>
+              Liều dùng
+              <input id="medicineDose" type="text" placeholder="Ví dụ: 1 viên sau ăn" required />
+            </label>
+
+            <div class="form-row">
+              <span class="field-label">Giờ nhắc</span>
+              <div id="timeInputs" class="time-list"></div>
+              <button class="secondary-button full" id="addTimeBtn" type="button">
+                <i data-lucide="alarm-plus"></i>
+                <span>Thêm giờ</span>
+              </button>
+            </div>
+
+            <fieldset>
+              <legend>Ngày nhắc</legend>
+              <div class="day-grid" id="dayGrid">
+                <label><input type="checkbox" value="1" checked />T2</label>
+                <label><input type="checkbox" value="2" checked />T3</label>
+                <label><input type="checkbox" value="3" checked />T4</label>
+                <label><input type="checkbox" value="4" checked />T5</label>
+                <label><input type="checkbox" value="5" checked />T6</label>
+                <label><input type="checkbox" value="6" checked />T7</label>
+                <label><input type="checkbox" value="0" checked />CN</label>
+              </div>
+            </fieldset>
+
+            <label>
+              Ghi chú
+              <textarea id="medicineNotes" rows="3" placeholder="Ví dụ: Uống sau bữa sáng, không uống khi đói"></textarea>
+            </label>
+
+            <div class="photo-box">
+              <div>
+                <span class="field-label">Ảnh thuốc</span>
+                <p>Chụp vỏ hộp hoặc viên thuốc để người lớn tuổi dễ nhận ra.</p>
+              </div>
+              <label class="photo-button">
+                <i data-lucide="camera"></i>
+                <span>Chụp / chọn ảnh</span>
+                <input id="medicinePhoto" type="file" accept="image/*" capture="environment" />
+              </label>
+              <div class="photo-preview empty" id="photoPreview">
+                <i data-lucide="image"></i>
+                <span>Chưa có ảnh</span>
+              </div>
+              <button class="secondary-button full" id="removePhotoBtn" type="button" hidden>
+                <i data-lucide="image-off"></i>
+                <span>Xóa ảnh</span>
+              </button>
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-button" type="submit">
+                <i data-lucide="save"></i>
+                <span>Lưu lịch nhắc</span>
+              </button>
+              <button class="secondary-button danger" id="deleteMedicineBtn" type="button" hidden>
+                <i data-lucide="trash-2"></i>
+                <span>Xóa lịch</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="saved-panel" aria-labelledby="savedTitle">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Đang lưu trong máy</p>
+              <h2 id="savedTitle">Lịch đã tạo</h2>
+            </div>
+            <label class="file-button">
+              <i data-lucide="upload"></i>
+              <span>Nhập</span>
+              <input id="importFile" type="file" accept="application/json" />
+            </label>
+          </div>
+          <div class="medicine-list" id="medicineList"></div>
+        </section>
+      </section>
+    </main>
+
+    <dialog class="alarm-dialog" id="alarmDialog" aria-labelledby="alarmTitle">
+      <div class="alarm-content">
+        <div class="alarm-icon" aria-hidden="true">
+          <i data-lucide="bell-ring"></i>
+        </div>
+        <p class="eyebrow">Đến giờ uống thuốc</p>
+        <img class="alarm-photo" id="alarmPhoto" alt="Ảnh thuốc cần uống" hidden />
+        <h2 id="alarmTitle">Tên thuốc</h2>
+        <p id="alarmDose">Liều dùng</p>
+        <p id="alarmNotes" class="alarm-notes"></p>
+        <div class="alarm-actions">
+          <button class="primary-button large" id="alarmTakenBtn" type="button">
+            <i data-lucide="check"></i>
+            <span>Đã uống</span>
+          </button>
+          <button class="secondary-button large" id="alarmSnoozeBtn" type="button">
+            <i data-lucide="clock-3"></i>
+            <span>Nhắc lại 10 phút</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <footer>
+      Dữ liệu được lưu trong trình duyệt của máy này bằng IndexedDB. App hỗ trợ ghi nhớ lịch dùng thuốc, không thay thế chỉ định của bác sĩ.
+    </footer>
+  </body>
+</html>

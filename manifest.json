@@ -1,0 +1,19 @@
+{
+  "name": "Nhắc Thuốc An Lành",
+  "short_name": "Nhắc Thuốc",
+  "description": "Ứng dụng nhắc người lớn tuổi uống thuốc đúng giờ.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#2563eb",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
