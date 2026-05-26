@@ -2,6 +2,7 @@ const DB_NAME = "nhac-thuoc-an-lanh-db";
 const DB_VERSION = 1;
 const LEGACY_STORAGE_KEY = "medicine-reminder-vi-v1";
 const SNOOZE_MINUTES = 10;
+const MAX_SOUND_FILE_BYTES = 15 * 1024 * 1024;
 const dayLabels = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 let db;
@@ -17,6 +18,9 @@ let activeView = "home";
 let alertOccurrence = null;
 let alarmAudio = null;
 let toastTimer = null;
+let soundRecorder = null;
+let soundRecorderStream = null;
+let soundRecordChunks = [];
 
 const els = {
   dateLine: document.querySelector("#dateLine"),
@@ -33,6 +37,16 @@ const els = {
   medicineNotes: document.querySelector("#medicineNotes"),
   medicinePhoto: document.querySelector("#medicinePhoto"),
   medicinePhotoData: document.querySelector("#medicinePhotoData"),
+  medicineSound: document.querySelector("#medicineSound"),
+  medicineSoundData: document.querySelector("#medicineSoundData"),
+  medicineSoundName: document.querySelector("#medicineSoundName"),
+  medicineSoundType: document.querySelector("#medicineSoundType"),
+  soundPreview: document.querySelector("#soundPreview"),
+  soundAudioPlayer: document.querySelector("#soundAudioPlayer"),
+  soundVideoPlayer: document.querySelector("#soundVideoPlayer"),
+  recordSoundBtn: document.querySelector("#recordSoundBtn"),
+  stopRecordSoundBtn: document.querySelector("#stopRecordSoundBtn"),
+  removeSoundBtn: document.querySelector("#removeSoundBtn"),
   photoPreview: document.querySelector("#photoPreview"),
   removePhotoBtn: document.querySelector("#removePhotoBtn"),
   timeInputs: document.querySelector("#timeInputs"),
@@ -133,6 +147,9 @@ async function migrateLegacyData() {
             putMed({
               ...med,
               photoData: med.photoData || "",
+              soundData: med.soundData || "",
+              soundName: med.soundName || "",
+              soundType: med.soundType || "",
               active: med.active !== false,
             })
           )
@@ -399,9 +416,11 @@ function addTimeInput(value = "08:00") {
 }
 
 function resetForm(shouldFocus = true) {
+  cleanupSoundRecorder();
   els.medicineForm.reset();
   els.medicineId.value = "";
   els.medicinePhotoData.value = "";
+  setSoundFields({ dataUrl: "", name: "", type: "" });
   els.timeInputs.innerHTML = "";
   addTimeInput("08:00");
   els.deleteMedicineBtn.hidden = true;
@@ -410,6 +429,7 @@ function resetForm(shouldFocus = true) {
     input.checked = true;
   });
   renderPhotoPreview("");
+  renderSoundPreview();
   if (shouldFocus) els.medicineName.focus();
 }
 
@@ -425,6 +445,55 @@ function renderPhotoPreview(dataUrl) {
   els.photoPreview.classList.remove("empty");
   els.photoPreview.innerHTML = `<img src="${dataUrl}" alt="Ảnh thuốc đang chọn" />`;
   els.removePhotoBtn.hidden = false;
+}
+
+function setSoundFields(sound) {
+  els.medicineSoundData.value = sound.dataUrl || "";
+  els.medicineSoundName.value = sound.name || "";
+  els.medicineSoundType.value = sound.type || "";
+}
+
+function getSoundFields() {
+  return {
+    dataUrl: els.medicineSoundData.value,
+    name: els.medicineSoundName.value,
+    type: els.medicineSoundType.value,
+  };
+}
+
+function renderSoundPreview() {
+  const sound = getSoundFields();
+  els.soundAudioPlayer.pause();
+  els.soundVideoPlayer.pause();
+
+  if (!sound.dataUrl) {
+    els.soundPreview.classList.add("empty");
+    els.soundPreview.innerHTML = `<i data-lucide="music"></i><span>Đang dùng chuông mặc định</span>`;
+    els.soundAudioPlayer.hidden = true;
+    els.soundVideoPlayer.hidden = true;
+    els.soundAudioPlayer.removeAttribute("src");
+    els.soundVideoPlayer.removeAttribute("src");
+    els.removeSoundBtn.hidden = true;
+    updateIcons();
+    return;
+  }
+
+  const isVideo = sound.type.startsWith("video/");
+  els.soundPreview.classList.remove("empty");
+  els.soundPreview.innerHTML = `
+    <i data-lucide="${isVideo ? "file-video" : "file-audio"}"></i>
+    <span>Âm báo riêng</span>
+    <strong>${escapeHtml(sound.name || "Đã chọn âm thanh")}</strong>
+  `;
+
+  const activePlayer = isVideo ? els.soundVideoPlayer : els.soundAudioPlayer;
+  const inactivePlayer = isVideo ? els.soundAudioPlayer : els.soundVideoPlayer;
+  inactivePlayer.hidden = true;
+  inactivePlayer.removeAttribute("src");
+  activePlayer.src = sound.dataUrl;
+  activePlayer.hidden = false;
+  els.removeSoundBtn.hidden = false;
+  updateIcons();
 }
 
 function collectFormData() {
@@ -447,6 +516,9 @@ function collectFormData() {
     times: uniqueTimes,
     days,
     photoData: els.medicinePhotoData.value,
+    soundData: els.medicineSoundData.value,
+    soundName: els.medicineSoundName.value,
+    soundType: els.medicineSoundType.value,
     active: existing ? existing.active !== false : true,
     updatedAt: new Date().toISOString(),
   };
@@ -477,12 +549,18 @@ function editMedicine(id) {
   els.medicineDose.value = med.dose;
   els.medicineNotes.value = med.notes || "";
   els.medicinePhotoData.value = med.photoData || "";
+  setSoundFields({
+    dataUrl: med.soundData || "",
+    name: med.soundName || "",
+    type: med.soundType || "",
+  });
   els.timeInputs.innerHTML = "";
   med.times.forEach((time) => addTimeInput(time));
   els.dayGrid.querySelectorAll("input").forEach((input) => {
     input.checked = med.days.includes(Number(input.value));
   });
   renderPhotoPreview(med.photoData || "");
+  renderSoundPreview();
   els.deleteMedicineBtn.hidden = false;
   els.medicineName.focus();
 }
@@ -609,9 +687,53 @@ function closeAlarm() {
 }
 
 function startAlarm(occurrence) {
-  playAlarmPattern();
+  playAlarmSound(occurrence);
   if ("vibrate" in navigator) navigator.vibrate([280, 120, 280, 120, 700]);
   sendNotification(occurrence);
+}
+
+function playAlarmSound(occurrence) {
+  if (occurrence?.med?.soundData) {
+    playCustomAlarmSound(occurrence.med.soundData, occurrence.med.soundType);
+    return;
+  }
+  playAlarmPattern();
+}
+
+function playCustomAlarmSound(dataUrl, type = "") {
+  stopAlarm();
+  const element = document.createElement(type.startsWith("video/") ? "video" : "audio");
+  element.src = dataUrl;
+  element.loop = true;
+  element.playsInline = true;
+  element.preload = "auto";
+  element.style.display = "none";
+  document.body.append(element);
+
+  let fallbackTimer = window.setTimeout(() => {
+    if (!element.paused) return;
+    element.remove();
+    playAlarmPattern();
+  }, 1200);
+
+  const playPromise = element.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {
+      window.clearTimeout(fallbackTimer);
+      element.remove();
+      playAlarmPattern();
+    });
+  }
+
+  alarmAudio = {
+    stop() {
+      window.clearTimeout(fallbackTimer);
+      element.pause();
+      element.removeAttribute("src");
+      element.load();
+      element.remove();
+    },
+  };
 }
 
 function playAlarmPattern() {
@@ -687,6 +809,107 @@ async function handlePhoto(file) {
   } catch {
     showToast("Chưa đọc được ảnh thuốc.");
   }
+}
+
+async function handleSoundFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("audio/") && !file.type.startsWith("video/")) {
+    showToast("Vui lòng chọn file audio hoặc video.");
+    return;
+  }
+  if (file.size > MAX_SOUND_FILE_BYTES) {
+    showToast("File âm thanh/quay video nên giữ dưới 15MB.");
+    return;
+  }
+
+  try {
+    const dataUrl = await blobToDataUrl(file);
+    setSoundFields({
+      dataUrl,
+      name: file.name || "Âm báo riêng",
+      type: file.type || "audio/mpeg",
+    });
+    renderSoundPreview();
+    showToast(file.type.startsWith("video/") ? "Đã thêm tiếng từ video." : "Đã thêm âm báo riêng.");
+  } catch {
+    showToast("Chưa đọc được file âm thanh.");
+  }
+}
+
+function chooseRecordingMimeType() {
+  const options = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"];
+  return options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || "";
+}
+
+async function startSoundRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    showToast("Trình duyệt này chưa hỗ trợ thu âm trực tiếp.");
+    return;
+  }
+
+  try {
+    soundRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    soundRecordChunks = [];
+    const mimeType = chooseRecordingMimeType();
+    soundRecorder = new MediaRecorder(soundRecorderStream, mimeType ? { mimeType } : undefined);
+
+    soundRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data?.size) soundRecordChunks.push(event.data);
+    });
+
+    soundRecorder.addEventListener("stop", async () => {
+      try {
+        const type = soundRecorder.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(soundRecordChunks, { type });
+        const dataUrl = await blobToDataUrl(blob);
+        setSoundFields({
+          dataUrl,
+          name: `Ghi âm ${timeLabel(new Date())}`,
+          type,
+        });
+        renderSoundPreview();
+        showToast("Đã lưu bản ghi âm.");
+      } catch {
+        showToast("Chưa lưu được bản ghi âm.");
+      } finally {
+        cleanupSoundRecorder();
+      }
+    });
+
+    soundRecorder.start();
+    els.recordSoundBtn.disabled = true;
+    els.stopRecordSoundBtn.hidden = false;
+    showToast("Đang thu âm...");
+  } catch {
+    cleanupSoundRecorder();
+    showToast("Chưa thể mở micro để thu âm.");
+  }
+}
+
+function stopSoundRecording() {
+  if (soundRecorder?.state === "recording") {
+    soundRecorder.stop();
+    return;
+  }
+  cleanupSoundRecorder();
+}
+
+function cleanupSoundRecorder() {
+  soundRecorderStream?.getTracks().forEach((track) => track.stop());
+  soundRecorderStream = null;
+  soundRecorder = null;
+  soundRecordChunks = [];
+  els.recordSoundBtn.disabled = false;
+  els.stopRecordSoundBtn.hidden = true;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
 }
 
 function resizeImage(file, maxSize, quality) {
@@ -827,9 +1050,23 @@ function bindEvents() {
     event.target.value = "";
   });
 
+  els.medicineSound.addEventListener("change", (event) => {
+    const [file] = event.target.files;
+    handleSoundFile(file);
+    event.target.value = "";
+  });
+
+  els.recordSoundBtn.addEventListener("click", startSoundRecording);
+  els.stopRecordSoundBtn.addEventListener("click", stopSoundRecording);
+
   els.removePhotoBtn.addEventListener("click", () => {
     els.medicinePhotoData.value = "";
     renderPhotoPreview("");
+  });
+
+  els.removeSoundBtn.addEventListener("click", () => {
+    setSoundFields({ dataUrl: "", name: "", type: "" });
+    renderSoundPreview();
   });
 
   els.importFile.addEventListener("change", (event) => {

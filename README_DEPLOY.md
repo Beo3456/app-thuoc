@@ -7,6 +7,7 @@ Web app tĩnh để nhắc người lớn tuổi uống thuốc. App có thể c
 - Trang chính chỉ hiện các lần uống thuốc sắp tới.
 - Màn hình riêng để thêm, sửa, bật/tắt và xóa lịch nhắc.
 - Chuông báo khi đến giờ, không dùng giọng đọc.
+- Mỗi lịch có thể dùng âm báo riêng từ file audio, tiếng trong video ngắn, hoặc bản thu âm trực tiếp.
 - Chụp hoặc chọn ảnh thuốc để dễ nhận diện.
 - Lưu dữ liệu bằng IndexedDB, đóng app rồi mở lại vẫn còn lịch.
 - Xuất/nhập dữ liệu JSON để sao lưu.

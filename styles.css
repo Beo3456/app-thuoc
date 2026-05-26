@@ -132,7 +132,8 @@ h3 {
 .hero-panel p,
 .card-text,
 footer,
-.photo-box p {
+.photo-box p,
+.sound-box p {
   color: var(--muted);
 }
 
@@ -151,6 +152,7 @@ footer,
 .secondary-button,
 .file-button,
 .photo-button,
+.sound-button,
 .mini-button {
   align-items: center;
   border: 1px solid transparent;
@@ -169,6 +171,7 @@ footer,
 .secondary-button,
 .file-button,
 .photo-button,
+.sound-button,
 .mini-button {
   background: var(--surface);
   border-color: var(--line);
@@ -193,6 +196,7 @@ footer,
 .secondary-button:hover,
 .file-button:hover,
 .photo-button:hover,
+.sound-button:hover,
 .mini-button:hover,
 .icon-button:hover,
 .tab-button:not(.active):hover {
@@ -539,7 +543,8 @@ fieldset {
   width: 100%;
 }
 
-.photo-box {
+.photo-box,
+.sound-box {
   background: var(--surface-tint);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -549,12 +554,14 @@ fieldset {
 }
 
 .photo-button,
-.file-button {
+.file-button,
+.sound-button {
   position: relative;
 }
 
 .photo-button input,
-.file-button input {
+.file-button input,
+.sound-button input {
   height: 1px;
   opacity: 0;
   overflow: hidden;
@@ -586,6 +593,46 @@ fieldset {
   color: var(--mint);
   height: 44px;
   width: 44px;
+}
+
+.sound-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sound-actions .danger {
+  grid-column: 1 / -1;
+}
+
+.sound-preview {
+  align-items: center;
+  background: #fff;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 118px;
+  padding: 18px;
+  text-align: center;
+}
+
+.sound-preview svg {
+  color: var(--primary);
+  height: 40px;
+  width: 40px;
+}
+
+.sound-preview strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+#soundAudioPlayer,
+#soundVideoPlayer {
+  width: 100%;
 }
 
 .toast {
@@ -716,5 +763,13 @@ footer {
 
   .alarm-actions {
     grid-template-columns: 1fr;
+  }
+
+  .sound-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sound-actions .danger {
+    grid-column: auto;
   }
 }

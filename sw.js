@@ -1,4 +1,4 @@
-const CACHE_NAME = "nhac-thuoc-an-lanh-v4";
+const CACHE_NAME = "nhac-thuoc-an-lanh-v5";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

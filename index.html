@@ -94,6 +94,9 @@
           <form id="medicineForm" class="medicine-form">
             <input type="hidden" id="medicineId" />
             <input type="hidden" id="medicinePhotoData" />
+            <input type="hidden" id="medicineSoundData" />
+            <input type="hidden" id="medicineSoundName" />
+            <input type="hidden" id="medicineSoundType" />
 
             <label>
               Tên thuốc
@@ -149,6 +152,38 @@
               <button class="secondary-button full" id="removePhotoBtn" type="button" hidden>
                 <i data-lucide="image-off"></i>
                 <span>Xóa ảnh</span>
+              </button>
+            </div>
+
+            <div class="sound-box">
+              <div>
+                <span class="field-label">Âm thanh báo</span>
+                <p>Chọn file audio, lấy tiếng từ video ngắn, hoặc thu âm trực tiếp lời nhắc.</p>
+              </div>
+              <div class="sound-actions">
+                <label class="sound-button">
+                  <i data-lucide="file-audio"></i>
+                  <span>Chọn audio / video</span>
+                  <input id="medicineSound" type="file" accept="audio/*,video/*" />
+                </label>
+                <button class="secondary-button" id="recordSoundBtn" type="button">
+                  <i data-lucide="mic"></i>
+                  <span>Thu âm</span>
+                </button>
+                <button class="secondary-button danger" id="stopRecordSoundBtn" type="button" hidden>
+                  <i data-lucide="square"></i>
+                  <span>Dừng</span>
+                </button>
+              </div>
+              <div class="sound-preview empty" id="soundPreview">
+                <i data-lucide="music"></i>
+                <span>Đang dùng chuông mặc định</span>
+              </div>
+              <audio id="soundAudioPlayer" controls hidden></audio>
+              <video id="soundVideoPlayer" controls hidden playsinline></video>
+              <button class="secondary-button full" id="removeSoundBtn" type="button" hidden>
+                <i data-lucide="volume-x"></i>
+                <span>Xóa âm báo riêng</span>
               </button>
             </div>
 
