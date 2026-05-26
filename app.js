@@ -45,6 +45,7 @@ const els = {
   soundAudioPlayer: document.querySelector("#soundAudioPlayer"),
   soundVideoPlayer: document.querySelector("#soundVideoPlayer"),
   recordSoundBtn: document.querySelector("#recordSoundBtn"),
+  recordSoundFile: document.querySelector("#recordSoundFile"),
   stopRecordSoundBtn: document.querySelector("#stopRecordSoundBtn"),
   removeSoundBtn: document.querySelector("#removeSoundBtn"),
   photoPreview: document.querySelector("#photoPreview"),
@@ -841,9 +842,18 @@ function chooseRecordingMimeType() {
   return options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || "";
 }
 
+function canUseLiveRecorder() {
+  return Boolean(window.isSecureContext && navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+}
+
+function openSystemAudioRecorder(message) {
+  showToast(message);
+  els.recordSoundFile.click();
+}
+
 async function startSoundRecording() {
-  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    showToast("Trình duyệt này chưa hỗ trợ thu âm trực tiếp.");
+  if (!canUseLiveRecorder()) {
+    openSystemAudioRecorder("Mở trình ghi âm/chọn file âm thanh của điện thoại.");
     return;
   }
 
@@ -882,7 +892,7 @@ async function startSoundRecording() {
     showToast("Đang thu âm...");
   } catch {
     cleanupSoundRecorder();
-    showToast("Chưa thể mở micro để thu âm.");
+    openSystemAudioRecorder("Micro bị chặn, hãy ghi âm bằng trình ghi âm của điện thoại.");
   }
 }
 
@@ -1051,6 +1061,12 @@ function bindEvents() {
   });
 
   els.medicineSound.addEventListener("change", (event) => {
+    const [file] = event.target.files;
+    handleSoundFile(file);
+    event.target.value = "";
+  });
+
+  els.recordSoundFile.addEventListener("change", (event) => {
     const [file] = event.target.files;
     handleSoundFile(file);
     event.target.value = "";
